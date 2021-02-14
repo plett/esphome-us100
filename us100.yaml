@@ -1,0 +1,45 @@
+esphome:
+  name: mynode
+  platform: ESP8266
+  board: d1_mini
+  includes:
+    - us100.h
+
+wifi:
+  networks:
+    ssid: !secret wifissid
+    password: !secret wifipassword
+    hidden: true
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+uart:
+  id: uart_bus
+  tx_pin: D1
+  rx_pin: D2
+  baud_rate: 9600
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal Sensor"
+    update_interval: 60s
+  - platform: custom
+    lambda: |-
+      auto us100 = new US100(id(uart_bus));
+      App.register_component(us100);
+      return {
+        us100->distsensor,
+        us100->tempsensor,
+      };
+    sensors:
+      - name: "US100 Distance"
+        unit_of_measurement: mm
+        icon: "mdi:tape-measure"
+      - name: "US100 Temperature"
+        unit_of_measurement: °C
