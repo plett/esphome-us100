@@ -1,0 +1,78 @@
+substitutions:
+  friendly_short: "Water Tank"
+
+esphome:
+  name: watertank
+  platform: ESP8266
+  board: d1_mini
+  includes:
+    - us100.h
+
+wifi:
+  networks:
+    ssid: !secret wifissid
+    password: !secret wifipassword
+    hidden: true
+
+# Enable logging
+logger:
+  #  level: INFO
+
+# Enable Home Assistant API
+api:
+
+ota:
+  password: !secret otapassword
+
+uart:
+  id: uart_bus
+  tx_pin: D1
+  rx_pin: D2
+  baud_rate: 9600
+
+sensor:
+  - platform: custom
+    lambda: |-
+      auto us100 = new US100(id(uart_bus));
+      App.register_component(us100);
+      return {
+        us100->distsensor,
+        us100->tempsensor,
+      };
+    sensors:
+      #- name: "${friendly_short} Distance"
+      - id: us100_distance
+        unit_of_measurement: mm
+        icon: "mdi:tape-measure"
+      - name: "${friendly_short} Temperature"
+        unit_of_measurement: °C
+  - platform: template
+    #name: "${friendly_short} Water Level"
+    id: waterlevel
+    icon: "mdi:arrow-expand-vertical"
+    update_interval: 10s
+    unit_of_measurement: "mm"
+    lambda:
+      return 600 - id(us100_distance).state;
+  - platform: template
+    name: "${friendly_short} Percentage"
+    icon: "mdi:water"
+    update_interval: 10s
+    unit_of_measurement: "%"
+    lambda:
+      return id(waterlevel).state;
+    filters:
+      - calibrate_linear:
+        - 0 -> 0
+        - 500 -> 100
+  - platform: template
+    name: "${friendly_short} Litres"
+    icon: "mdi:water"
+    update_interval: 10s
+    unit_of_measurement: "L"
+    lambda:
+      return id(waterlevel).state;
+    filters:
+      - calibrate_linear:
+        - 0 -> 0
+        - 500 -> 200
