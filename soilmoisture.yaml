@@ -1,0 +1,50 @@
+esphome:
+  name: soilmoisture1
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  networks:
+    ssid: !secret wifissid
+    password: !secret wifipassword
+    hidden: true
+
+logger:
+  #  level: INFO
+
+api:
+
+ota:
+  password: !secret otapassword
+
+sensor:
+  - platform: adc
+    pin: A0
+    name: "Raw ADC voltage"
+    update_interval: 1s
+    filters:
+      - multiply: 3.3 #wemos D1 mini has potential divider to give 3.3v full scale
+    on_value_range:
+      - above: 2
+        then:
+          - text_sensor.template.publish:
+              id: state_sensor
+              state: "Dry"
+      - above: 1
+        below: 2
+        then:
+          - text_sensor.template.publish:
+              id: state_sensor
+              state: "Moist"
+      - below: 1
+        then:
+          - text_sensor.template.publish:
+              id: state_sensor
+              state: "Wet"
+
+text_sensor:
+  - platform: template
+    name: "Soil Moisture State"
+    id: state_sensor
+
+
